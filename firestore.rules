@@ -1,0 +1,77 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function hasRole(role) {
+      return isSignedIn() && userDoc().data.roles.hasAny([role]);
+    }
+
+    function inOrg(orgId) {
+      return isSignedIn() && userDoc().data.orgId == orgId;
+    }
+
+    function isOrgAdmin(orgId) {
+      return inOrg(orgId) && (hasRole('admin') || hasRole('orgAdmin'));
+    }
+
+    // Organizations (ferry operators)
+    match /orgs/{orgId} {
+      allow read: if inOrg(orgId);
+      allow write: if isOrgAdmin(orgId);
+
+      match /vessels/{vesselId} {
+        allow read: if inOrg(orgId);
+        allow write: if isOrgAdmin(orgId);
+      }
+
+      match /outlets/{outletId} {
+        allow read: if inOrg(orgId);
+        allow write: if isOrgAdmin(orgId);
+      }
+
+      match /menuItems/{itemId} {
+        allow read: if inOrg(orgId);
+        allow write: if isOrgAdmin(orgId) || hasRole('chef');
+      }
+
+      match /voyages/{voyageId} {
+        allow read: if inOrg(orgId);
+        allow write: if inOrg(orgId) && (hasRole('crew') || hasRole('chef') || isOrgAdmin(orgId));
+      }
+
+      match /wasteEntries/{entryId} {
+        allow read: if inOrg(orgId);
+        allow create: if inOrg(orgId);
+        allow update, delete: if isOrgAdmin(orgId) ||
+          (inOrg(orgId) && resource.data.createdBy == request.auth.uid);
+      }
+
+      match /dailyRollups/{dayId} {
+        allow read: if inOrg(orgId);
+        allow write: if false; // server-only via admin SDK
+      }
+
+      match /apiKeys/{keyId} {
+        allow read, write: if isOrgAdmin(orgId);
+      }
+
+      match /webhooks/{hookId} {
+        allow read, write: if isOrgAdmin(orgId);
+      }
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
+      allow write: if isSignedIn() && request.auth.uid == userId;
+    }
+  }
+}
