@@ -1,65 +1,73 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Trash2,
-  Ship,
-  Map,
-  BookOpen,
-  Settings,
-  Webhook,
-  FileBarChart,
-  Leaf
-} from "lucide-react";
-
-const NAV = [
-  { section: "Operate" },
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/log", label: "Log waste", icon: Trash2 },
-  { href: "/voyages", label: "Voyages", icon: Map },
-  { href: "/vessels", label: "Vessels & outlets", icon: Ship },
-  { section: "Analyze" },
-  { href: "/reports", label: "Reports", icon: FileBarChart },
-  { href: "/sustainability", label: "Sustainability", icon: Leaf },
-  { section: "Configure" },
-  { href: "/menu", label: "Menu items", icon: BookOpen },
-  { href: "/integrations", label: "Integrations", icon: Webhook },
-  { href: "/settings", label: "Settings", icon: Settings }
-] as const;
+import { SidebarNav } from "./SidebarNav";
+import { getSession } from "@/lib/session";
+import { translator, LOCALE_LABEL } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n-server";
 
 export function Sidebar() {
-  const pathname = usePathname();
+  const session = getSession();
+  const locale = getLocale();
+  const t = translator(locale);
+
+  // Role-based nav tree.
+  const crewOnly = session.role === "crew";
+  const manager = session.role === "serviceManager" || session.role === "chef";
+  const admin = session.role === "admin" || session.role === "orgAdmin";
+
+  const items: Array<{ section?: string; href?: string; label?: string; icon?: string }> = [];
+
+  if (crewOnly) {
+    items.push({ section: t("nav.operate") });
+    items.push({ href: "/register", label: t("nav.register"), icon: "Trash2" });
+    items.push({ href: "/", label: t("nav.dashboard"), icon: "LayoutDashboard" });
+    items.push({ section: t("nav.configure") });
+    items.push({ href: "/settings", label: t("nav.settings"), icon: "Settings" });
+  } else if (manager) {
+    items.push({ section: t("nav.operate") });
+    items.push({ href: "/", label: t("nav.dashboard"), icon: "LayoutDashboard" });
+    items.push({ href: "/register", label: t("nav.register"), icon: "Trash2" });
+    items.push({ href: "/voyages", label: t("nav.voyages"), icon: "Map" });
+    items.push({ section: t("nav.analyze") });
+    items.push({ href: "/reports", label: t("nav.reports"), icon: "FileBarChart" });
+    items.push({ href: "/sustainability", label: t("nav.sustainability"), icon: "Leaf" });
+    items.push({ section: t("nav.configure") });
+    items.push({ href: "/settings", label: t("nav.settings"), icon: "Settings" });
+  } else {
+    items.push({ section: t("nav.operate") });
+    items.push({ href: "/", label: t("nav.dashboard"), icon: "LayoutDashboard" });
+    items.push({ href: "/register", label: t("nav.register"), icon: "Trash2" });
+    items.push({ href: "/voyages", label: t("nav.voyages"), icon: "Map" });
+    items.push({ href: "/vessels", label: t("nav.vessels"), icon: "Ship" });
+    items.push({ section: t("nav.analyze") });
+    items.push({ href: "/reports", label: t("nav.reports"), icon: "FileBarChart" });
+    items.push({ href: "/sustainability", label: t("nav.sustainability"), icon: "Leaf" });
+    items.push({ section: t("nav.configure") });
+    items.push({ href: "/menu", label: t("nav.menu"), icon: "BookOpen" });
+    items.push({ href: "/integrations", label: t("nav.integrations"), icon: "Webhook" });
+    items.push({ href: "/settings", label: t("nav.settings"), icon: "Settings" });
+  }
+
+  const roleKey = `role.${session.role}`;
+
   return (
     <aside className="app-sidebar">
-      <div className="sidebar-logo">
+      <Link href="/" className="sidebar-logo" style={{ textDecoration: "none", color: "inherit" }}>
         <span className="mark">F</span>
         <span>
           Ferry<span style={{ color: "#9FD4F0" }}>Waste</span>
         </span>
+      </Link>
+
+      <div className="sidebar-user">
+        <div className="sidebar-user-name">{session.displayName}</div>
+        <div className="sidebar-user-role">{t(roleKey)}</div>
       </div>
 
-      <nav className="sidebar-nav">
-        {NAV.map((n, i) =>
-          "section" in n ? (
-            <div key={`s-${i}`} className="sidebar-section">{n.section}</div>
-          ) : (
-            <Link
-              key={n.href}
-              href={n.href as string}
-              className={pathname === n.href ? "active" : ""}
-            >
-              <n.icon size={16} strokeWidth={2} />
-              <span>{n.label}</span>
-            </Link>
-          )
-        )}
-      </nav>
+      <SidebarNav items={items} />
 
-      <div style={{ marginTop: 32, padding: 12, borderRadius: 10, background: "rgba(255,255,255,0.06)" }}>
+      <div className="sidebar-footer">
         <div className="tiny" style={{ color: "rgba(255,255,255,0.7)" }}>
-          Demo data shown. Configure Firebase in <code style={{ background: "rgba(255,255,255,0.1)", color: "#fff" }}>.env.local</code> to go live.
+          {LOCALE_LABEL[locale]} · v1.1
         </div>
       </div>
     </aside>

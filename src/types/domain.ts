@@ -41,7 +41,14 @@ export type OutletType =
 
 export type Unit = "kg" | "g" | "l" | "ml" | "portions" | "covers";
 
-export type UserRole = "admin" | "orgAdmin" | "chef" | "crew" | "viewer" | "integration";
+export type UserRole =
+  | "admin"
+  | "orgAdmin"
+  | "serviceManager"  // per-vessel operational manager
+  | "chef"            // head chef / galley manager
+  | "crew"            // register-first, minimal dashboard
+  | "viewer"
+  | "integration";
 
 export interface Org {
   id: string;
@@ -54,9 +61,9 @@ export interface Org {
 export interface Vessel {
   id: string;
   orgId: string;
-  name: string;               // e.g. "Stena Germanica"
-  imo?: string;               // IMO number
-  route?: string;             // e.g. "Gothenburg–Kiel"
+  name: string;
+  imo?: string;
+  route?: string;
   paxCapacity?: number;
   active: boolean;
 }
@@ -65,7 +72,7 @@ export interface Outlet {
   id: string;
   orgId: string;
   vesselId: string;
-  name: string;               // e.g. "Metropolitan Buffet"
+  name: string;
   type: OutletType;
   deck?: string;
   seats?: number;
@@ -75,14 +82,14 @@ export interface Voyage {
   id: string;
   orgId: string;
   vesselId: string;
-  reference: string;          // voyage/sailing number
-  departurePort: string;      // UN/LOCODE preferred
+  reference: string;
+  departurePort: string;
   arrivalPort: string;
-  departureAt: number;        // unix ms
+  departureAt: number;
   arrivalAt: number;
-  paxCount?: number;          // actual passengers
-  coversServed?: number;      // meals served across all outlets
-  revenue?: number;           // F&B revenue on voyage
+  paxCount?: number;
+  coversServed?: number;
+  revenue?: number;
   closed: boolean;
 }
 
@@ -90,11 +97,11 @@ export interface MenuItem {
   id: string;
   orgId: string;
   name: string;
-  category: string;           // starter / main / dessert / beverage / side
-  portionWeightG?: number;    // standard portion size
-  costPerPortion?: number;    // COGS
+  category: string;
+  portionWeightG?: number;
+  costPerPortion?: number;
   pricePerPortion?: number;
-  emissionFactor?: number;    // kg CO2e per portion (optional override)
+  emissionFactor?: number;
 }
 
 export interface WasteEntry {
@@ -111,32 +118,32 @@ export interface WasteEntry {
 
   quantity: number;
   unit: Unit;
-  weightKg: number;           // normalized
+  weightKg: number;
 
   estimatedCost?: number;
   estimatedCo2eKg?: number;
 
-  reason?: string;            // free text or taxonomy code
+  reason?: string;
   photoUrl?: string;
   notes?: string;
 
   occurredAt: number;
   createdAt: number;
-  createdBy: string;          // uid
+  createdBy: string;
   source: "web" | "mobile" | "scale" | "api";
 }
 
 export interface DailyRollup {
-  id: string;                 // YYYY-MM-DD
+  id: string;
   orgId: string;
   vesselId?: string;
-  date: string;               // YYYY-MM-DD (ship-local)
+  date: string;
   totalWeightKg: number;
   totalCost: number;
   totalCo2eKg: number;
-  byStage: Record<WasteStage, number>;    // kg
-  byStream: Record<WasteStream, number>;  // kg
-  byOutlet: Record<string, number>;       // outletId -> kg
+  byStage: Record<WasteStage, number>;
+  byStream: Record<WasteStream, number>;
+  byOutlet: Record<string, number>;
   entryCount: number;
   coversServed?: number;
   wastePerCoverKg?: number;
@@ -147,7 +154,7 @@ export interface ApiKey {
   id: string;
   orgId: string;
   label: string;
-  hashedKey: string;          // SHA-256 of token
+  hashedKey: string;
   scopes: ApiScope[];
   createdAt: number;
   lastUsedAt?: number;
@@ -168,7 +175,7 @@ export interface Webhook {
   orgId: string;
   url: string;
   events: WebhookEvent[];
-  secret: string;              // HMAC signing
+  secret: string;
   active: boolean;
   createdAt: number;
 }
@@ -180,7 +187,7 @@ export type WebhookEvent =
   | "rollup.daily";
 
 export interface User {
-  id: string;                  // Firebase uid
+  id: string;
   orgId: string;
   email: string;
   displayName?: string;
